@@ -29,6 +29,7 @@
 @property(assign, nonatomic) BOOL stepValueContinuously;
 
 // defafult YES, indicating whether changes in the sliders value generate continuous update events.
+
 @property(assign, nonatomic) BOOL continuous;
 
 // default 0.0. this value will be pinned to min/max
@@ -43,20 +44,9 @@
 // center location for the upper handle control
 @property(readonly, nonatomic) CGPoint upperCenter;
 
-// maximum value for left thumb
-@property(assign, nonatomic) float lowerMaximumValue;
 
-// minimum value for right thumb
-@property(assign, nonatomic) float upperMinimumValue;
-
-@property (assign, nonatomic) UIEdgeInsets lowerTouchEdgeInsets;
-@property (assign, nonatomic) UIEdgeInsets upperTouchEdgeInsets;
-
-@property (assign, nonatomic) BOOL lowerHandleHidden;
-@property (assign, nonatomic) BOOL upperHandleHidden;
-
-@property (assign, nonatomic) float lowerHandleHiddenWidth;
-@property (assign, nonatomic) float upperHandleHiddenWidth;
+@property (nonatomic,strong) UILabel * leftLabel;
+@property (nonatomic,strong) UILabel * rightLabel;
 
 // Images, these should be set before the control is displayed.
 // If they are not set, then the default images are used.
@@ -73,19 +63,14 @@
 
 @property(retain, nonatomic) UIImage* trackImage;
 
-// track image when lower value is higher than the upper value (eg. when minimum range is negative
-@property(retain, nonatomic) UIImage* trackCrossedOverImage;
-
 @property(retain, nonatomic) UIImage* trackBackgroundImage;
 
 
-
-
 //Setting the lower/upper values with an animation :-)
-- (void)setLowerValue:(float)lowerValue animated:(BOOL) animated;
+- (void)setLowerValue:(float)lowerValue animated:(BOOL)animated;
 
-- (void)setUpperValue:(float)upperValue animated:(BOOL) animated;
+- (void)setUpperValue:(float)upperValue animated:(BOOL)animated;
 
-- (void) setLowerValue:(float) lowerValue upperValue:(float) upperValue animated:(BOOL)animated;
+- (void)setLowerValue:(float)lowerValue upperValue:(float)upperValue animated:(BOOL)animated;
 
 @end

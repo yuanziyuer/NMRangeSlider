@@ -8,21 +8,6 @@
 
 #import "NMRangeSlider.h"
 
-
-#define IS_PRE_IOS7() (DeviceSystemMajorVersion() < 7)
-
-NSUInteger DeviceSystemMajorVersion() {
-    static NSUInteger _deviceSystemMajorVersion = -1;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _deviceSystemMajorVersion = [[[[[UIDevice currentDevice] systemVersion]
-                                       componentsSeparatedByString:@"."] objectAtIndex:0] intValue];
-    });
-    return _deviceSystemMajorVersion;
-}
-
-
-
 @interface NMRangeSlider ()
 {
     float _lowerTouchOffset;
@@ -38,20 +23,31 @@ NSUInteger DeviceSystemMajorVersion() {
 
 @end
 
-
 @implementation NMRangeSlider
+
+@synthesize track;
+@synthesize trackBackground;
+@synthesize minimumRange = _minimumRange;
+@synthesize minimumValue = _minimumValue;
+@synthesize maximumValue = _maximumValue;
+@synthesize stepValue = _stepValue;
+@synthesize continuous =  _continuous;
+@synthesize lowerValue = _lowerValue;
+@synthesize upperValue =  _upperValue;
+@synthesize lowerHandle = _lowerHandle;
+@synthesize upperHandle = _upperHandle;
+@synthesize trackBackgroundImage = _trackBackgroundImage;
+@synthesize trackImage = _trackImage;
+@synthesize lowerHandleImageNormal = _lowerHandleImageNormal;
+@synthesize lowerHandleImageHighlighted = _lowerHandleImageHighlighted;
+@synthesize upperHandleImageNormal = _upperHandleImageNormal;
+@synthesize upperHandleImageHighlighted = _upperHandleImageHighlighted;
+@synthesize stepValueContinuously = _stepValueContinuously;
+@synthesize leftLabel = _leftLabel;
+@synthesize rightLabel = _rightLabel;
 
 #pragma mark -
 #pragma mark - Constructors
-
-- (id)init
-{
-    self = [super init];
-    if (self) {
-        [self configureView];
-    }
-    return self;
-}
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -88,20 +84,8 @@ NSUInteger DeviceSystemMajorVersion() {
     
     _continuous = YES;
     
-    _lowerValue = _minimumValue;
-    _upperValue = _maximumValue;
-    
-    _lowerMaximumValue = NAN;
-    _upperMinimumValue = NAN;
-    _upperHandleHidden = NO;
-    _lowerHandleHidden = NO;
-    
-    _lowerHandleHiddenWidth = 2.0f;
-    _upperHandleHiddenWidth = 2.0f;
-    
-    _lowerTouchEdgeInsets = UIEdgeInsetsMake(-5, -5, -5, -5);
-    _upperTouchEdgeInsets = UIEdgeInsetsMake(-5, -5, -5, -5);
-    
+    _lowerValue = 0.0;
+    _upperValue = 1.0;
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -128,13 +112,7 @@ NSUInteger DeviceSystemMajorVersion() {
         value = roundf(value / _stepValueInternal) * _stepValueInternal;
     }
     
-    value = MIN(value, _maximumValue);
     value = MAX(value, _minimumValue);
-    
-    if (!isnan(_lowerMaximumValue)) {
-        value = MIN(value, _lowerMaximumValue);
-    }
-    
     value = MIN(value, _upperValue - _minimumRange);
     
     _lowerValue = value;
@@ -150,18 +128,12 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         value = roundf(value / _stepValueInternal) * _stepValueInternal;
     }
-
-    value = MAX(value, _minimumValue);
+    
     value = MIN(value, _maximumValue);
-    
-    if (!isnan(_upperMinimumValue)) {
-        value = MAX(value, _upperMinimumValue);
-    }
-    
     value = MAX(value, _lowerValue+_minimumRange);
     
     _upperValue = value;
-
+    
     [self setNeedsLayout];
 }
 
@@ -204,7 +176,7 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         setValuesBlock();
     }
-
+    
 }
 
 - (void)setLowerValue:(float)lowerValue animated:(BOOL) animated
@@ -217,36 +189,15 @@ NSUInteger DeviceSystemMajorVersion() {
     [self setLowerValue:NAN upperValue:upperValue animated:animated];
 }
 
-- (void) setLowerHandleHidden:(BOOL)lowerHandleHidden
-{
-    _lowerHandleHidden = lowerHandleHidden;
-    [self setNeedsLayout];
-}
-
-- (void) setUpperHandleHidden:(BOOL)upperHandleHidden
-{
-    _upperHandleHidden = upperHandleHidden;
-    [self setNeedsLayout];
-}
-
 //ON-Demand images. If the images are not set, then the default values are loaded.
 
 - (UIImage *)trackBackgroundImage
 {
     if(_trackBackgroundImage==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-trackBackground"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 5.0, 0.0, 5.0)];
-            _trackBackgroundImage = image;
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-trackBackground"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
-            _trackBackgroundImage = image;
-        }
+        UIImage* image = [UIImage imageNamed:@"slider-default-trackBackground"];
+        image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 5.0, 0.0, 5.0)];
+        _trackBackgroundImage = image;
     }
     
     return _trackBackgroundImage;
@@ -256,62 +207,20 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     if(_trackImage==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-track"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
-            _trackImage = image;
-        }
-        else
-        {
-            
-            UIImage* image = [UIImage imageNamed:@"slider-default7-track"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
-            image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-            _trackImage = image;
-        }
+        UIImage* image = [UIImage imageNamed:@"slider-default-track"];
+        image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
+        _trackImage = image;
     }
     
     return _trackImage;
-}
-
-
-- (UIImage *)trackCrossedOverImage
-{
-    if(_trackCrossedOverImage==nil)
-    {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-trackCrossedOver"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
-            _trackCrossedOverImage = image;
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-trackCrossedOver"];
-            image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
-            _trackCrossedOverImage = image;
-        }
-    }
-    
-    return _trackCrossedOverImage;
 }
 
 - (UIImage *)lowerHandleImageNormal
 {
     if(_lowerHandleImageNormal==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
-            _lowerHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
-            _lowerHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
-        }
-
+        UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
+        _lowerHandleImageNormal = image;
     }
     
     return _lowerHandleImageNormal;
@@ -321,18 +230,8 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     if(_lowerHandleImageHighlighted==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
-            _lowerHandleImageHighlighted = image;
-            _lowerHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
-
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
-            _lowerHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
-        }
+        UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
+        _lowerHandleImageHighlighted = image;
     }
     
     return _lowerHandleImageHighlighted;
@@ -342,17 +241,8 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     if(_upperHandleImageNormal==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
-            _upperHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
-
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
-            _upperHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
-        }
+        UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
+        _upperHandleImageNormal = image;
     }
     
     return _upperHandleImageNormal;
@@ -362,16 +252,8 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     if(_upperHandleImageHighlighted==nil)
     {
-        if(IS_PRE_IOS7())
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
-            _upperHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
-        }
-        else
-        {
-            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
-            _upperHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
-        }
+        UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
+        _upperHandleImageHighlighted = image;
     }
     
     return _upperHandleImageHighlighted;
@@ -409,70 +291,33 @@ NSUInteger DeviceSystemMajorVersion() {
     return value;
 }
 
-- (UIEdgeInsets) trackAlignmentInsets
-{
-    UIEdgeInsets lowerAlignmentInsets = self.lowerHandleImageNormal.alignmentRectInsets;
-    UIEdgeInsets upperAlignmentInsets = self.upperHandleImageNormal.alignmentRectInsets;
-    
-    CGFloat lowerOffset = MAX(lowerAlignmentInsets.right, upperAlignmentInsets.left);
-    CGFloat upperOffset = MAX(upperAlignmentInsets.right, lowerAlignmentInsets.left);
-    
-    CGFloat leftOffset = MAX(lowerOffset, upperOffset);
-    CGFloat rightOffset = leftOffset;
-    CGFloat topOffset = lowerAlignmentInsets.top;
-    CGFloat bottomOffset = lowerAlignmentInsets.bottom;
-    
-    return UIEdgeInsetsMake(topOffset, leftOffset, bottomOffset, rightOffset);
-}
-
-
 //returns the rect for the track image between the lower and upper values based on the trackimage object
 - (CGRect)trackRect
 {
     CGRect retValue;
     
-    UIImage* currentTrackImage = [self trackImageForCurrentValues];
+    retValue.size = CGSizeMake(_trackImage.size.width, _trackImage.size.height);
     
-    retValue.size = CGSizeMake(currentTrackImage.size.width, currentTrackImage.size.height);
-    
-    if(currentTrackImage.capInsets.top || currentTrackImage.capInsets.bottom)
+    if(_trackImage.capInsets.top || _trackImage.capInsets.bottom)
     {
         retValue.size.height=self.bounds.size.height;
     }
     
-    float lowerHandleWidth = _lowerHandleHidden ? _lowerHandleHiddenWidth : _lowerHandle.frame.size.width;
-    float upperHandleWidth = _upperHandleHidden ? _upperHandleHiddenWidth : _upperHandle.frame.size.width;
-    
-    float xLowerValue = ((self.bounds.size.width - lowerHandleWidth) * (_lowerValue - _minimumValue) / (_maximumValue - _minimumValue))+(lowerHandleWidth/2.0f);
-    float xUpperValue = ((self.bounds.size.width - upperHandleWidth) * (_upperValue - _minimumValue) / (_maximumValue - _minimumValue))+(upperHandleWidth/2.0f);
+    float xLowerValue = ((self.bounds.size.width - _lowerHandle.frame.size.width) * (_lowerValue - _minimumValue) / (_maximumValue - _minimumValue))+(_lowerHandle.frame.size.width/2.0f);
+    float xUpperValue = ((self.bounds.size.width - _upperHandle.frame.size.width) * (_upperValue - _minimumValue) / (_maximumValue - _minimumValue))+(_upperHandle.frame.size.width/2.0f);
     
     retValue.origin = CGPointMake(xLowerValue, (self.bounds.size.height/2.0f) - (retValue.size.height/2.0f));
     retValue.size.width = xUpperValue-xLowerValue;
-
-    UIEdgeInsets alignmentInsets = [self trackAlignmentInsets];
-    retValue = UIEdgeInsetsInsetRect(retValue,alignmentInsets);
     
     return retValue;
 }
 
-- (UIImage*) trackImageForCurrentValues
-{
-    if(self.lowerValue <= self.upperValue)
-    {
-        return self.trackImage;
-    }
-    else
-    {
-        return self.trackCrossedOverImage;
-    }
-}
-
 //returns the rect for the background image
- -(CGRect) trackBackgroundRect
+-(CGRect) trackBackgroundRect
 {
     CGRect trackBackgroundRect;
     
-    trackBackgroundRect.size = CGSizeMake(_trackBackgroundImage.size.width, _trackBackgroundImage.size.height);
+    trackBackgroundRect.size = CGSizeMake(_trackBackgroundImage.size.width-4, _trackBackgroundImage.size.height);
     
     if(_trackBackgroundImage.capInsets.top || _trackBackgroundImage.capInsets.bottom)
     {
@@ -481,15 +326,10 @@ NSUInteger DeviceSystemMajorVersion() {
     
     if(_trackBackgroundImage.capInsets.left || _trackBackgroundImage.capInsets.right)
     {
-        trackBackgroundRect.size.width=self.bounds.size.width;
+        trackBackgroundRect.size.width=self.bounds.size.width-4;
     }
     
-    trackBackgroundRect.origin = CGPointMake(0, (self.bounds.size.height/2.0f) - (trackBackgroundRect.size.height/2.0f));
-    
-    // Adjust the track rect based on the image alignment rects
-    
-    UIEdgeInsets alignmentInsets = [self trackAlignmentInsets];
-    trackBackgroundRect = UIEdgeInsetsInsetRect(trackBackgroundRect,alignmentInsets);
+    trackBackgroundRect.origin = CGPointMake(2, (self.bounds.size.height/2.0f) - (trackBackgroundRect.size.height/2.0f));
     
     return trackBackgroundRect;
 }
@@ -499,7 +339,7 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     CGRect thumbRect;
     UIEdgeInsets insets = thumbImage.capInsets;
-
+    
     thumbRect.size = CGSizeMake(thumbImage.size.width, thumbImage.size.height);
     
     if(insets.top || insets.bottom)
@@ -510,8 +350,8 @@ NSUInteger DeviceSystemMajorVersion() {
     float xValue = ((self.bounds.size.width-thumbRect.size.width)*((value - _minimumValue) / (_maximumValue - _minimumValue)));
     thumbRect.origin = CGPointMake(xValue, (self.bounds.size.height/2.0f) - (thumbRect.size.height/2.0f));
     
-    return CGRectIntegral(thumbRect);
-
+    return thumbRect;
+    
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -522,10 +362,14 @@ NSUInteger DeviceSystemMajorVersion() {
 
 - (void) addSubviews
 {
+    //------------------------------
+    // Track Brackground
+    self.trackBackground = [[UIImageView alloc] initWithImage:self.trackBackgroundImage];
+    self.trackBackground.frame = [self trackBackgroundRect];
     
     //------------------------------
     // Track
-    self.track = [[UIImageView alloc] initWithImage:[self trackImageForCurrentValues]];
+    self.track = [[UIImageView alloc] initWithImage:self.trackImage];
     self.track.frame = [self trackRect];
     
     //------------------------------
@@ -533,15 +377,30 @@ NSUInteger DeviceSystemMajorVersion() {
     self.lowerHandle = [[UIImageView alloc] initWithImage:self.lowerHandleImageNormal highlightedImage:self.lowerHandleImageHighlighted];
     self.lowerHandle.frame = [self thumbRectForValue:_lowerValue image:self.lowerHandleImageNormal];
     
+    _leftLabel = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, 42, 21)];
+    _leftLabel.center = CGPointMake(self.lowerHandle.bounds.size.width/2, self.lowerHandle.bounds.size.height/2);
+    _leftLabel.backgroundColor = [UIColor clearColor];
+    _leftLabel.textColor = [UIColor whiteColor];
+    _leftLabel.text = @"0个月";
+    _leftLabel.textAlignment = NSTextAlignmentCenter;
+    _leftLabel.font = [UIFont boldSystemFontOfSize:13.0f];
+    [self.lowerHandle addSubview:_leftLabel];
+    
+    
+    
     //------------------------------
     // Upper Handle Handle
     self.upperHandle = [[UIImageView alloc] initWithImage:self.upperHandleImageNormal highlightedImage:self.upperHandleImageHighlighted];
     self.upperHandle.frame = [self thumbRectForValue:_upperValue image:self.upperHandleImageNormal];
     
-    //------------------------------
-    // Track Brackground
-    self.trackBackground = [[UIImageView alloc] initWithImage:self.trackBackgroundImage];
-    self.trackBackground.frame = [self trackBackgroundRect];
+    _rightLabel = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, 42, 21)];
+    _rightLabel.center = CGPointMake(self.upperHandle.bounds.size.width/2, self.upperHandle.bounds.size.height/2);
+    _rightLabel.backgroundColor = [UIColor clearColor];
+    _rightLabel.textColor = [UIColor whiteColor];
+    _rightLabel.text = @"6岁";
+    _rightLabel.textAlignment = NSTextAlignmentCenter;
+    _rightLabel.font = [UIFont boldSystemFontOfSize:13.0f];
+    [_upperHandle addSubview:_rightLabel];
     
     
     [self addSubview:self.trackBackground];
@@ -559,43 +418,33 @@ NSUInteger DeviceSystemMajorVersion() {
         [self addSubviews];
     }
     
-    if(_lowerHandleHidden)
-    {
-        _lowerValue = _minimumValue;
-    }
     
-    if(_upperHandleHidden)
-    {
-        _upperValue = _maximumValue;
-    }
-
     self.trackBackground.frame = [self trackBackgroundRect];
     self.track.frame = [self trackRect];
-    self.track.image = [self trackImageForCurrentValues];
-
-    // Layout the lower handle
     self.lowerHandle.frame = [self thumbRectForValue:_lowerValue image:self.lowerHandleImageNormal];
-    self.lowerHandle.image = self.lowerHandleImageNormal;
-    self.lowerHandle.highlightedImage = self.lowerHandleImageHighlighted;
-    self.lowerHandle.hidden = self.lowerHandleHidden;
-    
-    // Layoput the upper handle
     self.upperHandle.frame = [self thumbRectForValue:_upperValue image:self.upperHandleImageNormal];
-    self.upperHandle.image = self.upperHandleImageNormal;
-    self.upperHandle.highlightedImage = self.upperHandleImageHighlighted;
-    self.upperHandle.hidden= self.upperHandleHidden;
-    
 }
 
-- (CGSize)intrinsicContentSize
-{
-   return CGSizeMake(UIViewNoIntrinsicMetric, MAX(self.lowerHandleImageNormal.size.height, self.upperHandleImageNormal.size.height));
-}
 
 // ------------------------------------------------------------------------------------------------------
 
 #pragma mark -
 #pragma mark - Touch handling
+
+// The handle size can be a little small, so i make it a little bigger
+// TODO: Do it the correct way. I think wwdc 2012 had a video on it...
+- (CGRect) touchRectForHandle:(UIImageView*) handleImageView
+{
+    float xPadding = 10;
+    float yPadding = 10; //(self.bounds.size.height-touchRect.size.height)/2.0f
+    
+    CGRect touchRect = handleImageView.frame;
+    touchRect.origin.x -= xPadding/2.0;
+    touchRect.origin.y -= yPadding/2.0;
+    touchRect.size.height += xPadding;
+    touchRect.size.width += yPadding;
+    return touchRect;
+}
 
 -(BOOL) beginTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event
 {
@@ -605,13 +454,13 @@ NSUInteger DeviceSystemMajorVersion() {
     //Check both buttons upper and lower thumb handles because
     //they could be on top of each other.
     
-    if(CGRectContainsPoint(UIEdgeInsetsInsetRect(_lowerHandle.frame, self.lowerTouchEdgeInsets), touchPoint))
+    if(CGRectContainsPoint([self touchRectForHandle:_lowerHandle], touchPoint))
     {
         _lowerHandle.highlighted = YES;
         _lowerTouchOffset = touchPoint.x - _lowerHandle.center.x;
     }
     
-    if(CGRectContainsPoint(UIEdgeInsetsInsetRect(_upperHandle.frame, self.upperTouchEdgeInsets), touchPoint))
+    if(CGRectContainsPoint([self touchRectForHandle:_upperHandle], touchPoint))
     {
         _upperHandle.highlighted = YES;
         _upperTouchOffset = touchPoint.x - _upperHandle.center.x;
@@ -655,7 +504,7 @@ NSUInteger DeviceSystemMajorVersion() {
     if(_upperHandle.highlighted )
     {
         float newValue = [self upperValueForCenterX:(touchPoint.x - _upperTouchOffset)];
-
+        
         //if both upper and lower is selected, then the new value must be HIGHER
         //otherwise the touch event is ignored.
         if(!_lowerHandle.highlighted || newValue>_upperValue)
@@ -669,7 +518,7 @@ NSUInteger DeviceSystemMajorVersion() {
             _upperHandle.highlighted=NO;
         }
     }
-     
+    
     
     //send the control event
     if(_continuous)
@@ -679,7 +528,7 @@ NSUInteger DeviceSystemMajorVersion() {
     
     //redraw
     [self setNeedsLayout];
-
+    
     return YES;
 }
 
